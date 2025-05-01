@@ -6,10 +6,16 @@ const videoSchema= new Schema({
     type: String,
     required: true
  },
+ videoPublicId: { 
+   type: String 
+}, // for deletion
  thumbnail:{
     type:String,
     required: true
  },
+ thumbnailPublicId: { 
+   type: String 
+},
  title:{
     type:String,
     required: true
@@ -20,7 +26,7 @@ const videoSchema= new Schema({
  },
  duration:{
     type:String,
-    required: true
+    
  },
  views:{
     type:Number,
@@ -30,6 +36,10 @@ const videoSchema= new Schema({
     type: Boolean,
     default:true
  },
+ isApproved: { 
+   type: Boolean, 
+   default: false 
+}, // admin toggle
  owner:{
     type: Schema.Types.ObjectId,
     ref: "User"

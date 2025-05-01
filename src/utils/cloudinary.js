@@ -28,7 +28,7 @@ const uploadOnCloudinary= async (localFilePath)=> {
         fs.unlinkSync(localFilePath)
         return null;
     }
-
+    
  
     
     
@@ -50,4 +50,21 @@ const uploadOnCloudinary= async (localFilePath)=> {
     
     // console.log(autoCropUrl);    
 };
-export {uploadOnCloudinary}
+
+
+ const deleteFromCloudinary = async (publicId, resourceType = 'video') => {
+  try {
+    const res = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    })
+    return res
+  } catch (err) {
+    console.error('Cloudinary deletion error:', err)
+    throw err
+  }
+}
+
+export {
+    uploadOnCloudinary,
+    deleteFromCloudinary
+}

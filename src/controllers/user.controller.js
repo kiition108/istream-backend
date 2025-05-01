@@ -60,7 +60,8 @@ const registerUser= asyncHandler( async(req,res)=>{
         coverImage: coverImage?.url || "",
         email,
         password,
-        username: username.toLowerCase()
+        username: username.toLowerCase(),
+        role: "user"
     })
 
     const createdUser= await User.findById(user._id).select(
@@ -99,9 +100,11 @@ const loginUser= asyncHandler( async(req,res)=>{
        const loggedInUser= await User.findById(user._id)
        .select("-password -refreshToken")
 
-       const options={
+       const options={ 
          httpOnly: true,
-         secure: true
+         secure: process.env.NODE_ENV === "production",
+         sameSite: "lax", // allow sending on navigation
+         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
        }
        return res
        .status(200)
@@ -214,9 +217,9 @@ const getCurrentUser = asyncHandler( async(req,res)=>{
 })
 
 const updateAccountDetails= asyncHandler( async(req,res)=>{
-    const {fullName, email}= req.body
+    const {fullName, email, username}= req.body
 
-    if(!fullName||!email){
+    if(!fullName&&!email&&!username){
         throw new ApiError(400, "All fields are required")
     }
     const user= await User.findByIdAndUpdate(
@@ -224,7 +227,8 @@ const updateAccountDetails= asyncHandler( async(req,res)=>{
         {
             $set:{
                 fullName,
-                email: email
+                email: email,
+                username: username
             }
         },
         {new: true}
@@ -417,7 +421,7 @@ const getWatchHistory= asyncHandler(async(req,res)=>{
            new ApiResponse(
             200,
             user[0].watchHistory,
-            "watch history detched successfully"
+            "watch history fetched successfully"
            )
       )
 })
