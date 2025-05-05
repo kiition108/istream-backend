@@ -77,6 +77,26 @@ export const uploadVideo = asyncHandler(async (req, res) => {
 
   return res.status(201).json(new ApiResponse(201, newVideo, "Video uploaded successfully"));
 });
+//list videos for all users either guest or logged in
+export const approvedListedVideos = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  
+  const videos= Video.aggregate([{
+    $match:{
+      isApproved:true,
+      isPublished:true
+    }
+  }])
+
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+  };
+
+  const result = await Video.aggregatePaginate(videos, options);
+
+  return res.status(200).json(new ApiResponse(200, result, "Videos fetched"));
+});
 
 // List videos with pagination
 export const listVideos = asyncHandler(async (req, res) => {
@@ -91,10 +111,34 @@ export const listVideos = asyncHandler(async (req, res) => {
     if (user.role !== 'admin') {
       matchConditions.isApproved = true;
     }
+    else{
+      matchConditions.isApproved = false;
+    }
   
     const aggregate = Video.aggregate([
       { $match: matchConditions },
-      { $sort: { createdAt: -1 } }
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      },
+      {
+        $unwind: '$userInfo'
+      },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          thumbnail: 1,
+          isApproved:1,
+          createdAt:1,
+          'userInfo.role': 1  // Only include the username from userInfo
+        }
+      }
     ]);
   
     const options = {
@@ -121,11 +165,27 @@ export const getUserVideos = asyncHandler(async (req, res) => {
   });
 });
 
-
+export const getVideoForAdminAndOwnerById= asyncHandler(async(req,res)=>{
+    const { id } = req.params;
+    const user=req.user;
+    
+    const video = await Video.findOne({ 
+      _id: id, 
+      isPublished: true,
+    }).populate('owner','username');
+    if (!video) {
+      throw new ApiError(404, "Video not found");
+    }
+    if((user?.role!=='admin') && !(video?.owner?._id.equals(user?._id))){
+      throw new ApiError(401, "you are not authorised to watch this video");
+    }
+    
+  
+    return res.status(200).json(new ApiResponse(200, video, "Video fetched successfully"));
+})
 // Get a single video by ID
 export const getVideoById = asyncHandler(async (req, res) => {
     const { id } = req.params;
-  
     const video = await Video.findOne({ 
       _id: id, 
       isPublished: true,

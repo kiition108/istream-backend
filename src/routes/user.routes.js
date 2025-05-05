@@ -1,6 +1,7 @@
 import { Router } from "express";   
 import {
     loginUser, 
+    verifyOtp,
     registerUser,
     logoutUser, 
     refreshAccessToken,
@@ -30,7 +31,7 @@ router.route("/register").post(
     registerUser
 
 )
-
+router.route("/verify-otp").post(verifyOtp);
 router.route("/login").post(
     loginUser
 )

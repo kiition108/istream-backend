@@ -6,7 +6,9 @@ import { uploadVideo,
         getVideoById, 
         toggleApproval, 
         togglePrivacy, 
-        deleteVideo 
+        deleteVideo, 
+        getVideoForAdminAndOwnerById,
+        approvedListedVideos
     } from '../controllers/video.controller.js';
 import { videoUpload } from '../middlewares/multer.middleware.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
@@ -25,11 +27,12 @@ router.post(
 );
 
 // video listing
-router.get('/album',verifyJWT, listVideos);
+router.get('/album', approvedListedVideos);
 router.get("/user", verifyJWT, getUserVideos);
+router.get("/pendingVideos",verifyJWT,listVideos)
 // get a single video by ID
 router.get('/:id', getVideoById);
-
+router.get('/adminOwner/:id',verifyJWT,getVideoForAdminAndOwnerById)
 // toggle approval (admin)
 router.put('/approval/:videoId', verifyJWT, toggleApproval);
 
