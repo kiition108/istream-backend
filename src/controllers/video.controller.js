@@ -111,9 +111,7 @@ export const listVideos = asyncHandler(async (req, res) => {
     if (user.role !== 'admin') {
       matchConditions.isApproved = true;
     }
-    else{
-      matchConditions.isApproved = false;
-    }
+    
   
     const aggregate = Video.aggregate([
       { $match: matchConditions },
@@ -153,14 +151,31 @@ export const listVideos = asyncHandler(async (req, res) => {
   
 
 export const getUserVideos = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
+  const { page = 1, limit = 10 } = req.query;
+  const user = req.user;
 
-  const videos = await Video.find({ owner: userId })
-    .sort({ createdAt: -1 });
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    sort: { createdAt: -1 }
+  };
+
+  const aggregate = Video.aggregate([
+    {
+      $match: {
+        owner: user._id  // Ensure owner is stored as ObjectId
+      }
+    },
+    {
+      $sort: { createdAt: -1 }
+    }
+  ]);
+
+  const result = await Video.aggregatePaginate(aggregate, options);
 
   res.status(200).json({
     success: true,
-    data: videos,
+    data: result,
     message: "User videos fetched successfully"
   });
 });
