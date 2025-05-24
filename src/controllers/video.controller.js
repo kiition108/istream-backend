@@ -4,16 +4,18 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary,deleteFromCloudinary } from "../utils/cloudinary.js";
 import ffmpeg from "fluent-ffmpeg";
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import ffprobeInstaller from '@ffprobe-installer/ffprobe'; // Optional: only if needed separately
 import fs from "fs";
 import path from 'path'
 
 
 // Define local paths to ffmpeg and ffprobe
-const ffmpegPath = path.resolve('ffmpeg/bin/ffmpeg')
-const ffprobePath = path.resolve('ffmpeg/bin/ffprobe')
 
-ffmpeg.setFfmpegPath(ffmpegPath)
-ffmpeg.setFfprobePath(ffprobePath)
+
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+ffmpeg.setFfprobePath(ffprobeInstaller.path); // optional if ffprobe is needed
+
 
 // Utility to extract duration using FFmpeg
 const getVideoDuration = (videoRelativePath) => {
