@@ -7,6 +7,7 @@ import { sendOTPEmail } from "../utils/sendEmail.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { Video } from "../models/video.model.js";
+import { Subscription } from "../models/subscription.model.js";
 
 const generateAccessAndRefreshTokens= async(userId)=>{
         try{
@@ -334,88 +335,92 @@ const updateUserCoverImage= asyncHandler( async(req,res)=>{
 })
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-    const { username } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-  
-    if (!username?.trim()) {
-      throw new ApiError(400, "Username is missing");
-    }
-  
-    const channelData = await User.aggregate([
-      {
-        $match: {
-          username: username.toLowerCase()
-        }
-      },
-      {
-        $lookup: {
-          from: "subscriptions",
-          localField: "_id",
-          foreignField: "channel",
-          as: "subscribers"
-        }
-      },
-      {
-        $lookup: {
-          from: "subscriptions",
-          localField: "_id",
-          foreignField: "subscriber",
-          as: "subscribedTo"
-        }
-      },
-      {
-        $addFields: {
-          subscribersCount: { $size: "$subscribers" },
-          channelsSubscribedToCount: { $size: "$subscribedTo" },
-          isSubscribed: {
-            $cond: {
-              if: { $in: [req.user?._id, "$subscribers.subscriber"] },
-              then: true,
-              else: false
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          fullName: 1,
-          username: 1,
-          subscribersCount: 1,
-          channelsSubscribedToCount: 1,
-          isSubscribed: 1,
-          avatar: 1,
-          coverImage: 1,
-          email: 1
-        }
+  const { username } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is missing");
+  }
+
+  // Step 1: Aggregate channel info
+  const channelData = await User.aggregate([
+    {
+      $match: {
+        username: username.toLowerCase()
       }
-    ]);
-  
-    const channel = channelData[0];
-    if (!channel) {
-      throw new ApiError(404, "Channel does not exist");
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers"
+      }
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo"
+      }
+    },
+    {
+      $addFields: {
+        subscribersCount: { $size: "$subscribers" },
+        channelsSubscribedToCount: { $size: "$subscribedTo" }
+      }
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1
+      }
     }
-  
-    // Fetch videos separately with pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const [uploadedVideos, videosCount] = await Promise.all([
-      Video.find({ owner: channel._id, isApproved: true })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit)),
-      Video.countDocuments({ owner: channel._id, isApproved: true })
-    ]);
-  
-    return res.status(200).json(
-      new ApiResponse(200, {
-        ...channel,
-        uploadedVideos,
-        videosCount,
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(videosCount / parseInt(limit))
-      }, "User channel fetched successfully")
-    );
-  });
-  
+  ]);
+
+  const channel = channelData[0];
+  if (!channel) {
+    throw new ApiError(404, "Channel does not exist");
+  }
+
+  // Step 2: Compute isSubscribed manually using Subscription model
+  let isSubscribed = false;
+
+  if (req.user && req.user._id.toString() !== channel._id.toString()) {
+    const subExists = await Subscription.exists({
+      channel: channel._id,
+      subscriber: req.user._id
+    });
+    isSubscribed = !!subExists;
+  }
+
+  // Step 3: Fetch videos with pagination
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const [uploadedVideos, videosCount] = await Promise.all([
+    Video.find({ owner: channel._id, isApproved: true })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit)),
+    Video.countDocuments({ owner: channel._id, isApproved: true })
+  ]);
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      ...channel,
+      isSubscribed,
+      uploadedVideos,
+      videosCount,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(videosCount / parseInt(limit))
+    }, "User channel fetched successfully")
+  );
+});
 
 const getWatchHistory= asyncHandler(async(req,res)=>{
       const user= await User.aggregate([

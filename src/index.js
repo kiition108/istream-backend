@@ -29,6 +29,8 @@ connectDB()
 
 
 /*
+this helps in ensure db is up and running while connecting to server to avoid db error 
+
 import express from "express"
 
 const app= express()
