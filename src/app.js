@@ -25,8 +25,10 @@ app.set('trust proxy', 1); // ✅ Necessary for secure cookies to work behind Re
 import userRouter from "./routes/user.routes.js"
 import videoRouter from "./routes/video.routes.js"
 import subscriptionRouter from "./routes/subscription.routes.js"
+import errorHandler from "./utils/errorHandler.js"
 // routes declaration
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/video", videoRouter)
 app.use("/api/v1/subscriptions",subscriptionRouter)
+app.use(errorHandler);
 export {app}

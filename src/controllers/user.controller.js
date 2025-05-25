@@ -409,7 +409,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       .limit(parseInt(limit)),
     Video.countDocuments({ owner: channel._id, isApproved: true })
   ]);
-
+  const totalPages=Math.ceil(videosCount / parseInt(limit))
+  const hasNextPage = page < totalPages;
+  const hasPreviousPage = page > 1;
   return res.status(200).json(
     new ApiResponse(200, {
       ...channel,
@@ -417,7 +419,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
       uploadedVideos,
       videosCount,
       currentPage: parseInt(page),
-      totalPages: Math.ceil(videosCount / parseInt(limit))
+      totalPages,
+      hasNextPage,
+      hasPreviousPage
     }, "User channel fetched successfully")
   );
 });
