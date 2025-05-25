@@ -1,6 +1,7 @@
 import mongoose, {Schema} from "mongoose"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
+import { type } from "os"
 const userSchema= new Schema({
      username:{
         type:String,
@@ -30,6 +31,9 @@ const userSchema= new Schema({
      coverImage:{
         type: String,// cloudinary url
 
+     },
+     description:{
+         type: String
      },
      watchHistory:{
         type: Schema.Types.ObjectId,

@@ -69,6 +69,7 @@ const registerUser= asyncHandler( async(req,res)=>{
     email,
     password,
     username: username.toLowerCase(),
+    description: "description",
     role: "user",
     otp: {
       code: otpCode,
@@ -253,9 +254,9 @@ const getCurrentUser = asyncHandler( async(req,res)=>{
 })
 
 const updateAccountDetails= asyncHandler( async(req,res)=>{
-    const {fullName, email, username}= req.body
+    const {fullName, email, username,description}= req.body
 
-    if(!fullName&&!email&&!username){
+    if(!fullName&&!email&&!username&&!description){
         throw new ApiError(400, "All fields are required")
     }
     const user= await User.findByIdAndUpdate(
@@ -264,7 +265,8 @@ const updateAccountDetails= asyncHandler( async(req,res)=>{
             $set:{
                 fullName,
                 email: email,
-                username: username
+                username: username,
+                description:description
             }
         },
         {new: true}
@@ -379,7 +381,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         channelsSubscribedToCount: 1,
         avatar: 1,
         coverImage: 1,
-        email: 1
+        email: 1,
+        description:1
       }
     }
   ]);
