@@ -188,7 +188,6 @@ export const getVideoForAdminAndOwnerById= asyncHandler(async(req,res)=>{
     
     const video = await Video.findOne({ 
       _id: id, 
-      isPublished: true,
     }).populate('owner','username');
     if (!video) {
       throw new ApiError(404, "Video not found");
@@ -205,7 +204,7 @@ export const getVideoById = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const video = await Video.findOne({ 
       _id: id, 
-      isPublished: true,
+      isPublished:true,
       isApproved: true 
     }).populate('owner','username');
   
