@@ -338,7 +338,7 @@ const updateUserCoverImage= asyncHandler( async(req,res)=>{
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 9 } = req.query;
 
   if (!username?.trim()) {
     throw new ApiError(400, "Username is missing");
@@ -406,11 +406,11 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   // Step 3: Fetch videos with pagination
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const [uploadedVideos, videosCount] = await Promise.all([
-    Video.find({ owner: channel._id, isApproved: true })
+    Video.find({ owner: channel._id, isApproved: true,isPublished: true })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit)),
-    Video.countDocuments({ owner: channel._id, isApproved: true })
+    Video.countDocuments({ owner: channel._id, isApproved: true, isPublished: true })
   ]);
   const totalPages=Math.ceil(videosCount / parseInt(limit))
   const hasNextPage = page < totalPages;

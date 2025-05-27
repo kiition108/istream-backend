@@ -81,7 +81,7 @@ export const uploadVideo = asyncHandler(async (req, res) => {
 });
 //list videos for all users either guest or logged in
 export const approvedListedVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 9 } = req.query;
   
   const videos= Video.aggregate([{
     $match:{
@@ -102,7 +102,7 @@ export const approvedListedVideos = asyncHandler(async (req, res) => {
 
 // List videos with pagination
 export const listVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 9 } = req.query;
     const user = req.user; // assuming you're using middleware to attach the authenticated user
     
     const matchConditions = {
@@ -153,7 +153,7 @@ export const listVideos = asyncHandler(async (req, res) => {
   
 
 export const getUserVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 9 } = req.query;
   const user = req.user;
 
   const options = {
