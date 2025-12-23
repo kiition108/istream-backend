@@ -8,7 +8,9 @@ import { uploadVideo,
         togglePrivacy, 
         deleteVideo, 
         getVideoForAdminAndOwnerById,
-        approvedListedVideos
+        approvedListedVideos,
+        addComment,
+        getComment
     } from '../controllers/video.controller.js';
 import { videoUpload } from '../middlewares/multer.middleware.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
@@ -49,4 +51,9 @@ router.put(
     updateVideo
   );
 
+//comments
+//add comment
+router.post('/:videoId/comments', verifyJWT,addComment);
+//get comments
+router.get('/:videoId/comments',getComment);
 export default router;
