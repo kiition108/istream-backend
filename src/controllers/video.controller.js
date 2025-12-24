@@ -167,7 +167,7 @@ export const getUserVideos = asyncHandler(async (req, res) => {
   const aggregate = Video.aggregate([
     {
       $match: {
-        owner: user._id  // Ensure owner is stored as ObjectId
+        "owner._id": user._id  // Ensure owner is stored as ObjectId
       }
     },
     {
@@ -234,7 +234,7 @@ export const toggleApproval = asyncHandler(async (req, res) => {
 export const togglePrivacy = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
-  const video = await Video.findOne({ _id: videoId, owner: req.user._id });
+  const video = await Video.findOne({ _id: videoId, "owner._id": req.user._id });
   if (!video) throw new ApiError(404, "Video not found or unauthorized");
 
   video.isPublished = !video.isPublished;
@@ -250,7 +250,7 @@ export const deleteVideo = asyncHandler(async (req, res) => {
   const video = await Video.findById(videoId);
   if (!video) throw new ApiError(404, "Video not found");
 
-  if (video.owner.toString() !== req.user._id.toString()) {
+  if (video.owner._id.toString() !== req.user._id.toString()) {
     throw new ApiError(403, "Unauthorized to delete this video");
   }
   //delete from cloudinary
@@ -282,7 +282,7 @@ export const updateVideo = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Video not found');
   }
 
-  if (video.owner.toString() !== userId.toString()) {
+  if (video.owner._id.toString() !== userId.toString()) {
     throw new ApiError(403, 'Not authorized to edit this video');
   }
 

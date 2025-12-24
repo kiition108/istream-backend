@@ -137,3 +137,7 @@ dist
 
 #ffmpeg/bin
 ffmpeg/
+
+checkDatabase.js
+checkVideoOwnerStructure.js
+scripts
