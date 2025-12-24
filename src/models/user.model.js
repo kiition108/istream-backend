@@ -1,82 +1,94 @@
-import mongoose, {Schema} from "mongoose"
+import mongoose, { Schema } from "mongoose"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import { type } from "os"
-const userSchema= new Schema({
-     username:{
-        type:String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true,
-        index: true
-     },
-     email:{
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true
-     },
-     fullName:{
-        type: String,
-        required: true,
-        trim: true,
-        index: true
-     },
-     avatar:{
-        type: String, //cloudinary url
-        required: true
-     },
-     coverImage:{
-        type: String,// cloudinary url
+const userSchema = new Schema({
+   username: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true
+   },
+   email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true
+   },
+   fullName: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true
+   },
+   avatar: {
+      type: String, //cloudinary url
+      required: true
+   },
+   coverImage: {
+      type: String,// cloudinary url
 
-     },
-     description:{
-         type: String
-     },
-     watchHistory:{
-        type: Schema.Types.ObjectId,
-        ref: "Video"
-     },
-     password:{
-        type: String,
-        required: [true, 'Password is required']
-     },
-     refreshToken:{
-        type: String
-     },
-     role: {
+   },
+   description: {
+      type: String
+   },
+   watchHistory: {
+      type: Schema.Types.ObjectId,
+      ref: "Video"
+   },
+   password: {
+      type: String,
+      required: function () {
+         return this.authProvider === 'local';
+      }
+   },
+   googleId: {
+      type: String,
+      sparse: true,
+      unique: true
+   },
+   authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local'
+   },
+   refreshToken: {
+      type: String
+   },
+   role: {
       type: String,
       enum: ['user', 'admin'],
       default: 'user'
-     },
-     otp: {
+   },
+   otp: {
       code: String,
       expiresAt: Date,
-    },
-    isVerified: {
+   },
+   isVerified: {
       type: Boolean,
       default: false,
-    }
-    
-     },
-     {
-        timestamps: true
-     }
+   }
+
+},
+   {
+      timestamps: true
+   }
 )
 
-userSchema.pre("save", async function(next){
-   if(!this.isModified("password")) return next()
-    this.password= await bcrypt.hash(this.password, 10)
-    next()
+userSchema.pre("save", async function (next) {
+   if (!this.isModified("password") || !this.password) return next()
+   this.password = await bcrypt.hash(this.password, 10)
+   next()
 })
 
-userSchema.methods.isPasswordCorrect= async function(password){
+userSchema.methods.isPasswordCorrect = async function (password) {
    return await bcrypt.compare(password, this.password)
 }
 
-userSchema.methods.generateAccessToken = function(){
+userSchema.methods.generateAccessToken = function () {
    return jwt.sign(
       {
          _id: this._id,
@@ -90,7 +102,7 @@ userSchema.methods.generateAccessToken = function(){
       }
    )
 }
-userSchema.methods.generateRefreshToken = function(){
+userSchema.methods.generateRefreshToken = function () {
    return jwt.sign(
       {
          _id: this._id
@@ -101,4 +113,4 @@ userSchema.methods.generateRefreshToken = function(){
       }
    )
 }
-export const User= mongoose.model("User", userSchema)
+export const User = mongoose.model("User", userSchema)

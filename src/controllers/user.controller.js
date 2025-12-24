@@ -482,6 +482,48 @@ const getWatchHistory = asyncHandler(async (req, res) => {
       )
     )
 })
+
+// Google OAuth Controllers
+const googleAuth = asyncHandler(async (req, res) => {
+  // This will be handled by passport middleware
+  // The actual redirect to Google is done in the route
+});
+
+const googleAuthCallback = asyncHandler(async (req, res) => {
+  try {
+    // User is attached by passport after successful authentication
+    const user = req.user;
+
+    if (!user) {
+      throw new ApiError(401, "Google authentication failed");
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None"
+    };
+
+    // Redirect to frontend with tokens
+    const frontendURL = process.env.CORS_ORIGIN || 'http://localhost:3000';
+    const redirectURL = `${frontendURL}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`;
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .redirect(redirectURL);
+  } catch (error) {
+    const frontendURL = process.env.CORS_ORIGIN || 'http://localhost:3000';
+    return res.redirect(`${frontendURL}/auth/error?message=${encodeURIComponent(error.message)}`);
+  }
+});
+
 export {
   registerUser,
   loginUser,
@@ -495,4 +537,6 @@ export {
   getUserChannelProfile,
   getWatchHistory,
   verifyOtp,
+  googleAuth,
+  googleAuthCallback,
 }

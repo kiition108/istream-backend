@@ -1,30 +1,34 @@
-import { Router } from "express";   
+import { Router } from "express";
 import {
-    loginUser, 
+    loginUser,
     verifyOtp,
     registerUser,
-    logoutUser, 
+    logoutUser,
     refreshAccessToken,
-    changeCurrentPassword, 
+    changeCurrentPassword,
     getCurrentUser,
-    updateAccountDetails, 
-    updateUserAvatar, 
-    updateUserCoverImage, 
-    getUserChannelProfile, 
-    getWatchHistory} from "../controllers/user.controller.js";
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory,
+    googleAuth,
+    googleAuthCallback
+} from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
-import {verifyJWT} from "../middlewares/auth.middleware.js";
-const router= Router();
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import passport from '../config/passport.config.js';
+const router = Router();
 
 
 router.route("/register").post(
     upload.fields([
         {
             name: "avatar",
-            maxCount:1
+            maxCount: 1
         },
         {
-            name:"coverImage",
+            name: "coverImage",
             maxCount: 1
         }
     ]),
@@ -38,11 +42,25 @@ router.route("/login").post(
 // secured routes
 router.route("/logout").post(verifyJWT, logoutUser)
 router.route("/refresh-token").post(refreshAccessToken)
-router.route("/change-password").post(verifyJWT,changeCurrentPassword)
+router.route("/change-password").post(verifyJWT, changeCurrentPassword)
 router.route("/current-user").get(verifyJWT, getCurrentUser)
-router.route("/update-account").patch(verifyJWT,updateAccountDetails)
-router.route("/avatar").patch(verifyJWT,upload.single("avatar"),updateUserAvatar)
+router.route("/update-account").patch(verifyJWT, updateAccountDetails)
+router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)
 router.route("/coverImage").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 router.route("/c/:username").get(getUserChannelProfile)
 router.route("/history").get(verifyJWT, getWatchHistory)
+
+// Google OAuth routes
+router.route("/auth/google").get(
+    passport.authenticate('google', { scope: ['profile', 'email'] }),
+    googleAuth
+);
+
+router.route("/auth/google/callback").get(
+    passport.authenticate('google', {
+        failureRedirect: process.env.CORS_ORIGIN ? `${process.env.CORS_ORIGIN}/auth/error` : '/auth/error',
+        session: false
+    }),
+    googleAuthCallback
+);
 export default router

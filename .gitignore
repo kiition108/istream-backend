@@ -138,6 +138,11 @@ dist
 #ffmpeg/bin
 ffmpeg/
 
+scripts
 checkDatabase.js
 checkVideoOwnerStructure.js
-scripts
+findSubscriptions.js
+migrateSubscriptions.js
+
+GOOGLE_OAUTH_SETUP.md
+SUBSCRIPTION_MIGRATION.md    
