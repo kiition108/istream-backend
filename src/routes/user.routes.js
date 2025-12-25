@@ -12,6 +12,9 @@ import {
     updateUserCoverImage,
     getUserChannelProfile,
     getWatchHistory,
+    clearWatchHistory,
+    removeFromWatchHistory,
+    getLikedVideos,
     googleAuth,
     googleAuthCallback
 } from "../controllers/user.controller.js";
@@ -49,6 +52,9 @@ router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvat
 router.route("/coverImage").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 router.route("/c/:username").get(getUserChannelProfile)
 router.route("/history").get(verifyJWT, getWatchHistory)
+router.route("/history").delete(verifyJWT, clearWatchHistory)
+router.route("/history/:videoId").delete(verifyJWT, removeFromWatchHistory)
+router.route("/liked-videos").get(verifyJWT, getLikedVideos)
 
 // Google OAuth routes
 router.route("/auth/google").get(

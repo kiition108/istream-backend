@@ -30,7 +30,7 @@ const subsriptionSchema = new Schema({
         },
         coverImage: {
             type: String,
-            required: true
+            required: false
         }
     }
 

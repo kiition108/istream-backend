@@ -22,6 +22,26 @@ export const getSubscriptions = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, subscriptions, { hasNextPage, hasPrevPage, totalPages }, "Subscriptions retrieved successfully"))
 })
+export const subscriptionStatus = asyncHandler(async (req, res) => {
+  const channelId = req.params.channelId
+  const userId = req.user._id
+
+  const subscription = await Subscription.findOne({
+    "subscriber._id": userId,
+    "channel._id": channelId
+  })
+
+  if (!subscription) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, false, "Not subscribed to this channel"))
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, true, "Subscribed to this channel"))
+})
+
 export const subscribeToChannel = asyncHandler(async (req, res) => {
   const channelId = req.params.channelId
   const userId = req.user._id

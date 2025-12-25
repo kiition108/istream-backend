@@ -1,10 +1,11 @@
 import express from 'express'
-import { getSubscriptions, subscribeToChannel, unsubscribeFromChannel } from '../controllers/subscription.controller.js'
+import { getSubscriptions, subscriptionStatus, subscribeToChannel, unsubscribeFromChannel } from '../controllers/subscription.controller.js'
 import { verifyJWT } from '../middlewares/auth.middleware.js'
 
 const router = express.Router()
 
-router.get('/get-subscriptions', verifyJWT, getSubscriptions)
+router.get('/', verifyJWT, getSubscriptions)
+router.get('/status/:channelId', verifyJWT, subscriptionStatus)
 router.post('/:channelId', verifyJWT, subscribeToChannel)
 router.delete('/:channelId', verifyJWT, unsubscribeFromChannel)
 

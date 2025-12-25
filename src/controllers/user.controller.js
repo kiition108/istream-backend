@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { Video } from "../models/video.model.js";
 import { Subscription } from "../models/subscription.model.js";
+import { Like } from "../models/like.model.js";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -354,16 +355,28 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     {
       $lookup: {
         from: "subscriptions",
-        localField: "_id",
-        foreignField: "channel",
+        let: { userId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$channel._id", "$$userId"] }
+            }
+          }
+        ],
         as: "subscribers"
       }
     },
     {
       $lookup: {
         from: "subscriptions",
-        localField: "_id",
-        foreignField: "subscriber",
+        let: { userId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$subscriber._id", "$$userId"] }
+            }
+          }
+        ],
         as: "subscribedTo"
       }
     },
@@ -393,15 +406,15 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   }
 
   // Step 2: Compute isSubscribed manually using Subscription model
-  let isSubscribed = false;
+  // let isSubscribed = false;
 
-  if (req.user && req.user._id.toString() !== channel._id.toString()) {
-    const subExists = await Subscription.exists({
-      channel: channel._id,
-      subscriber: req.user._id
-    });
-    isSubscribed = !!subExists;
-  }
+  // if (req.user && req.user._id.toString() !== channel.params._id.toString()) {
+  //   const subExists = await Subscription.exists({
+  //     "channel._id": channel.params._id,
+  //     "subscriber._id": req.user._id
+  //   });
+  //   isSubscribed = !!subExists;
+  // }
 
   // Step 3: Fetch videos with pagination
   const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -418,7 +431,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, {
       ...channel,
-      isSubscribed,
+      // isSubscribed,
       uploadedVideos,
       videosCount,
       currentPage: parseInt(page),
@@ -441,33 +454,33 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         from: "videos",
         localField: "watchHistory",
         foreignField: "_id",
-        as: "watchHistory",
-        pipeline: [
-          {
-            $lookup: {
-              from: "users",
-              localField: "owner",
-              foreignField: "_id",
-              as: "owner",
-              pipeline: [
+        as: "watchHistoryVideos"
+      }
+    },
+    {
+      $addFields: {
+        watchHistory: {
+          $map: {
+            input: "$watchHistory",
+            as: "videoId",
+            in: {
+              $arrayElemAt: [
                 {
-                  $project: {
-                    fullName: 1,
-                    username: 1,
-                    avatar: 1
+                  $filter: {
+                    input: "$watchHistoryVideos",
+                    cond: { $eq: ["$$this._id", "$$videoId"] }
                   }
-                }
+                },
+                0
               ]
             }
-          },
-          {
-            $addFields: {
-              owner: {
-                $first: "$owner"
-              }
-            }
           }
-        ]
+        }
+      }
+    },
+    {
+      $project: {
+        watchHistory: 1
       }
     }
   ])
@@ -477,11 +490,76 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        user[0].watchHistory,
+        user[0]?.watchHistory || [],
         "watch history fetched successfully"
       )
     )
 })
+
+// Clear all watch history
+const clearWatchHistory = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { watchHistory: [] } }
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, {}, "Watch history cleared successfully")
+    );
+});
+
+// Remove specific video from watch history
+const removeFromWatchHistory = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  await User.findByIdAndUpdate(
+    req.user._id,
+    { $pull: { watchHistory: videoId } }
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, {}, "Video removed from watch history")
+    );
+});
+
+// Get all liked videos
+const getLikedVideos = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 12 } = req.query;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+
+  // Get liked video IDs with pagination
+  const likedVideos = await Like.find({ user: req.user._id, type: 'like' })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(parseInt(limit))
+    .populate('video');
+
+  // Count total liked videos
+  const total = await Like.countDocuments({ user: req.user._id, type: 'like' });
+  const totalPages = Math.ceil(total / parseInt(limit));
+
+  // Extract video objects
+  const videos = likedVideos.map(like => like.video).filter(v => v !== null);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, {
+        videos,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalVideos: total,
+          hasNextPage: parseInt(page) < totalPages,
+          hasPrevPage: parseInt(page) > 1
+        }
+      }, "Liked videos fetched successfully")
+    );
+});
 
 // Google OAuth Controllers
 const googleAuth = asyncHandler(async (req, res) => {
@@ -536,6 +614,9 @@ export {
   updateUserCoverImage,
   getUserChannelProfile,
   getWatchHistory,
+  clearWatchHistory,
+  removeFromWatchHistory,
+  getLikedVideos,
   verifyOtp,
   googleAuth,
   googleAuthCallback,

@@ -98,7 +98,7 @@ NODE_ENV=development
 # Database
 MONGODB_URI=mongodb://localhost:27017/istream
 # or for MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/istream
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/
 
 # JWT
 ACCESS_TOKEN_SECRET=your_access_token_secret_here
