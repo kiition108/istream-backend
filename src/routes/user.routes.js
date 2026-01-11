@@ -16,7 +16,9 @@ import {
     removeFromWatchHistory,
     getLikedVideos,
     googleAuth,
-    googleAuthCallback
+    googleAuthCallback,
+    forgotPassword,
+    resetPassword
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -39,9 +41,9 @@ router.route("/register").post(
 
 )
 router.route("/verify-otp").post(verifyOtp);
-router.route("/login").post(
-    loginUser
-)
+router.route("/login").post(loginUser)
+router.route("/forgot-password").post(forgotPassword)
+router.route("/reset-password").post(resetPassword)
 // secured routes
 router.route("/logout").post(verifyJWT, logoutUser)
 router.route("/refresh-token").post(refreshAccessToken)

@@ -44,16 +44,16 @@ const registerUser = asyncHandler(async (req, res) => {
     coverImageLocalPath = req.files.coverImage[0].path;
   }
 
-  if (!avatarLocalPath) {
-    throw new ApiError(400, "Avatar file is required");
+  // Upload to Cloudinary if avatar is provided, otherwise use default
+  let avatarUrl = "https://res.cloudinary.com/dvju0lsne/image/upload/v1736604825/default-avatar_qo6ddr.png"; // Default avatar
+  if (avatarLocalPath) {
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    if (avatar) {
+      avatarUrl = avatar.url;
+    }
   }
 
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-
-  if (!avatar) {
-    throw new ApiError(400, "Failed to upload avatar");
-  }
 
   // Generate OTP
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -65,7 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // Create User with unverified flag
   const user = await User.create({
     fullName,
-    avatar: avatar.url,
+    avatar: avatarUrl,
     coverImage: coverImage?.url || "",
     email,
     password,
@@ -602,6 +602,72 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
   }
 });
 
+// Forgot Password - Send OTP
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(404, "User with this email does not exist");
+  }
+
+  // Generate OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  user.otp = {
+    code: otp,
+    expiresAt: otpExpiresAt
+  };
+
+  await user.save({ validateBeforeSave: false });
+
+  // Send OTP via email
+  await sendOTPEmail(email, otp);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { email }, "OTP sent to your email successfully"));
+});
+
+// Reset Password using OTP
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  if (!email || !otp || !newPassword) {
+    throw new ApiError(400, "Email, OTP, and new password are required");
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (!user.otp || !user.otp.code) {
+    throw new ApiError(400, "No OTP found. Please request a new one");
+  }
+
+  if (user.otp.code !== otp || user.otp.expiresAt < new Date()) {
+    throw new ApiError(400, "OTP is incorrect or expired");
+  }
+
+  // Update password
+  user.password = newPassword;
+  user.otp = undefined; // Clear OTP after successful reset
+
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Password reset successfully"));
+});
+
 export {
   registerUser,
   loginUser,
@@ -620,4 +686,6 @@ export {
   verifyOtp,
   googleAuth,
   googleAuthCallback,
+  forgotPassword,
+  resetPassword,
 }
