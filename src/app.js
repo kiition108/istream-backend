@@ -8,8 +8,20 @@ import passport from './config/passport.config.js';
 
 const app = express()
 
+// Handle multiple CORS origins
+const allowedOrigins = process.env.CORS_ORIGIN.split(',').map(origin => origin.trim());
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or Postman)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }))
 
@@ -28,6 +40,12 @@ import userRouter from "./routes/user.routes.js"
 import videoRouter from "./routes/video.routes.js"
 import subscriptionRouter from "./routes/subscription.routes.js"
 import errorHandler from "./utils/errorHandler.js"
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
+
 // routes declaration
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/video", videoRouter)
